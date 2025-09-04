@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WeatherAI - Akıllı Hava Durumu</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary-color: #38bdf8;
+      --secondary-color: #6366f1;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0f172a;
+      background-image: radial-gradient(at 0% 0%, #1e3a8a 0px, transparent 50%),
+                        radial-gradient(at 100% 100%, #1d4ed8 0px, transparent 50%);
+      min-height: 100vh;
+    }
+
+    .rain-drop {
+      position: absolute;
+      width: 2px;
+      height: 10px;
+      background: rgba(135, 206, 250, 0.6);
+      animation: rain 1s linear infinite;
+    }
+
+    @keyframes rain {
+      0% { transform: translateY(-100vh); opacity: 1; }
+      100% { transform: translateY(100vh); opacity: 0; }
+    }
+
+    .snow-flake {
+      position: absolute;
+      color: white;
+      animation: snow 3s linear infinite;
+      font-size: 1rem;
+    }
+
+    @keyframes snow {
+      0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+    }
+
+    .forecast-container::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    .forecast-container::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+    }
+
+    .forecast-container::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.1);
+    }
+
+    .weather-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .glass-effect {
+      backdrop-filter: blur(10px);
+      background: rgba(30, 41, 59, 0.8);
+    }
+  </style>
+</head>
+<body class="p-4">
+  <div id="weatherBg" class="weather-bg"></div>
+
+  <div class="relative w-full max-w-6xl mx-auto bg-slate-800 backdrop-blur-3xl bg-opacity-70 border border-slate-700 rounded-3xl shadow-2xl p-6 md:p-10 text-white z-10">
+
+    <div class="text-center mb-8">
+      <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-sky-500 mb-2">
+        Donduk.io
+      </h1>
+      <p class="text-slate-400">Akıllı Hava Durumu Sistemi</p>
+      
+      <div class="flex flex-wrap justify-center gap-4 mt-4">
+        <button id="themeToggle" class="bg-slate-700 px-4 py-2 rounded-xl hover:bg-slate-600 transition-all">
+          🌙 Tema
+        </button>
+        <button id="geoBtn" class="bg-slate-700 px-4 py-2 rounded-xl hover:bg-slate-600 transition-all">
+          📍 Konumum
+        </button>
+        <button id="favBtn" class="bg-slate-700 px-4 py-2 rounded-xl hover:bg-slate-600 transition-all">
+          ⭐ Favoriler
+        </button>
+      </div>
+    </div>
+
+    <div class="mb-8">
+      <select id="citySelector" class="w-full bg-slate-700 bg-opacity-50 text-white rounded-xl p-3 border border-slate-600 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all cursor-pointer shadow-inner">
+        <option value="">Şehir Seçin...</option>
+      </select>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <div class="lg:col-span-2">
+        <div id="currentWeatherCard" class="bg-slate-700 bg-opacity-40 p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6 mb-6 border border-slate-600">
+          
+          <div class="flex items-center gap-4 text-center md:text-left">
+            <img id="currentIcon" src="" alt="Hava Durumu İkonu" class="w-24 h-24 filter drop-shadow-md transition-transform duration-500">
+            <div>
+              <div class="text-5xl md:text-6xl font-bold mb-1" id="currentTemp">--°C</div>
+              <div class="text-xl text-slate-300 font-light" id="weatherDescription">Yükleniyor...</div>
+              <div class="text-lg text-slate-200 font-semibold mt-2 flex items-center gap-2">
+                <span id="cityTitle">--</span>
+                <button id="addToFav" class="text-yellow-400 hover:text-yellow-300">☆</button>
+              </div>
+              <div class="text-sm text-slate-400 mt-1" id="lastUpdate">Son güncelleme: --</div>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-4 w-full md:w-auto">
+            <div class="flex flex-col items-center justify-center p-3 rounded-lg bg-slate-800 bg-opacity-50 border border-slate-600">
+              <span class="text-sm text-slate-400">Nem</span>
+              <span class="text-lg font-bold" id="humidity">--%</span>
+            </div>
+            <div class="flex flex-col items-center justify-center p-3 rounded-lg bg-slate-800 bg-opacity-50 border border-slate-600">
+              <span class="text-sm text-slate-400">Rüzgar</span>
+              <span class="text-lg font-bold" id="windSpeed">-- km/h</span>
+            </div>
+            <div class="flex flex-col items-center justify-center p-3 rounded-lg bg-slate-800 bg-opacity-50 border border-slate-600">
+              <span class="text-sm text-slate-400">Basınç</span>
+              <span class="text-lg font-bold" id="pressure">-- mb</span>
+            </div>
+            <div class="flex flex-col items-center justify-center p-3 rounded-lg bg-slate-800 bg-opacity-50 border border-slate-600">
+              <span class="text-sm text-slate-400">Hissedilen</span>
+              <span class="text-lg font-bold" id="feelsLike">--°C</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div class="bg-purple-600 bg-opacity-60 border border-purple-500 p-6 rounded-2xl">
+            <h3 class="text-lg font-semibold mb-3 flex items-center gap-2">
+              👗 Kıyafet Önerisi
+            </h3>
+            <div id="outfitAdvice" class="text-purple-100 text-sm">
+              Hava durumuna göre kıyafet önerisi yükleniyor...
+            </div>
+          </div>
+
+          <div class="bg-green-600 bg-opacity-60 border border-green-500 p-6 rounded-2xl">
+            <h3 class="text-lg font-semibold mb-3 flex items-center gap-2">
+              🎯 Aktivite Önerileri
+            </h3>
+            <div id="activityAdvice" class="text-green-100 text-sm">
+              Günlük aktivite önerileri yükleniyor...
+            </div>
+          </div>
+
+          <div class="bg-orange-600 bg-opacity-60 border border-orange-500 p-6 rounded-2xl">
+            <h3 class="text-lg font-semibold mb-3 flex items-center gap-2">
+              🏥 Sağlık Uyarıları
+            </h3>
+            <div id="healthAdvice" class="text-orange-100 text-sm">
+              Sağlık uyarıları kontrol ediliyor...
+            </div>
+          </div>
+
+          <div class="bg-indigo-600 bg-opacity-60 border border-indigo-500 p-6 rounded-2xl text-center">
+            <h3 class="text-lg font-semibold mb-2">🏫 Okul Tatili İhtimali</h3>
+            <div class="text-4xl font-extrabold mb-2" id="holidayProbability">--%</div>
+            <p class="text-xs text-indigo-200">Kar, buzlanma ve fırtına faktörleri</p>
+          </div>
+        </div>
+
+        <div class="bg-slate-700 bg-opacity-40 p-6 rounded-2xl border border-slate-600">
+          <h3 class="text-xl font-semibold mb-4">24 Saatlik Tahmin</h3>
+          <div id="hourlyForecast" class="flex overflow-x-auto gap-4 py-2 forecast-container">
+            </div>
+        </div>
+      </div>
+
+      <div class="space-y-6">
+        
+        <div class="bg-slate-700 bg-opacity-40 p-6 rounded-2xl border border-slate-600">
+          <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+            🌅 Güneş & Ay
+          </h3>
+          <div class="space-y-3 text-sm">
+            <div class="flex justify-between">
+              <span class="text-slate-300">Gün Doğumu</span>
+              <span id="sunrise" class="font-semibold">--:--</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-300">Gün Batımı</span>
+              <span id="sunset" class="font-semibold">--:--</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-300">Ay Fazı</span>
+              <span id="moonPhase" class="font-semibold">🌙</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-slate-700 bg-opacity-40 p-6 rounded-2xl border border-slate-600">
+          <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+            🫁 Hava Kalitesi
+          </h3>
+          <div class="text-center">
+            <div class="text-2xl font-bold mb-2" id="airQuality">--</div>
+            <div class="text-xs text-slate-400" id="airQualityDesc">Yükleniyor...</div>
+          </div>
+        </div>
+
+        <div class="bg-slate-700 bg-opacity-40 p-6 rounded-2xl border border-slate-600">
+          <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+            ☀️ UV İndeksi
+          </h3>
+          <div class="text-center">
+            <div class="text-2xl font-bold mb-2" id="uvIndex">--</div>
+            <div class="text-xs text-slate-400" id="uvDesc">Yükleniyor...</div>
+          </div>
+        </div>
+
+        <div id="alertsContainer" class="bg-red-600 bg-opacity-60 border border-red-500 p-6 rounded-2xl hidden">
+          <h3 class="text-lg font-semibold mb-3 flex items-center gap-2 text-red-200">
+            ⚠️ Hava Durumu Uyarıları
+          </h3>
+          <div id="alerts" class="text-red-100 text-sm"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-8">
+      <h3 class="text-xl font-semibold text-center mb-4">7 Günlük Tahmin</h3>
+      <div id="forecastGrid" class="flex overflow-x-auto gap-4 py-4 px-2 scroll-smooth forecast-container">
+        </div>
+    </div>
+
+    <div class="mt-8 flex flex-wrap gap-4 justify-center">
+      <button id="shareBtn" class="bg-slate-700 px-6 py-3 rounded-xl hover:bg-slate-600 transition-all">
+        📤 Paylaş
+      </button>
+      <button id="exportBtn" class="bg-slate-700 px-6 py-3 rounded-xl hover:bg-slate-600 transition-all">
+        📄 Rapor İndir
+      </button>
+      <button id="compareBtn" class="bg-slate-700 px-6 py-3 rounded-xl hover:bg-slate-600 transition-all">
+        🔄 Şehir Karşılaştır
+      </button>
+    </div>
+  </div>
+
+  <div id="toast" class="fixed top-4 right-4 bg-slate-800 text-white px-6 py-4 rounded-xl shadow-lg transform translate-x-full transition-transform duration-300 z-50">
+    <div id="toastMessage"></div>
+  </div>
+
+  <script>
+   
+    let currentCity = 'Ankara';
+    let favorites = JSON.parse(localStorage.getItem('weatherFavorites') || '["Ankara"]');
+    let isDarkTheme = true;
+    
+    const apiKey = 'c97a6ce1476f468d942160643253107';
+    
+    const cities = [
+      "Adana", "Adıyaman", "Afyon", "Ağrı", "Amasya", "Ankara", "Antalya", "Artvin", "Aydın",
+      "Balıkesir", "Bilecik", "Bingöl", "Bitlis", "Bolu", "Burdur", "Bursa", "Çanakkale", "Çankırı",
+      "Çorum", "Denizli", "Diyarbakır", "Edirne", "Elazığ", "Erzincan", "Erzurum", "Eskişehir",
+      "Gaziantep", "Giresun", "Gümüşhane", "Hakkari", "Hatay", "Isparta", "Mersin", "İstanbul",
+      "İzmir", "Kars", "Kastamonu", "Kayseri", "Kırklareli", "Kırşehir", "Kocaeli", "Konya",
+      "Kütahya", "Malatya", "Manisa", "Kahramanmaraş", "Mardin", "Muğla", "Muş", "Nevşehir",
+      "Niğde", "Ordu", "Rize", "Sakarya", "Samsun", "Siirt", "Sinop", "Sivas", "Tekirdağ",
+      "Tokat", "Trabzon", "Tunceli", "Şanlıurfa", "Uşak", "Van", "Yozgat", "Zonguldak", "Aksaray",
+      "Bayburt", "Karaman", "Kırıkkale", "Batman", "Şırnak", "Bartın", "Ardahan", "Iğdır",
+      "Yalova", "Karabük", "Kilis", "Osmaniye", "Düzce"
+    ];
+
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      initializeCitySelector();
+      setupEventListeners();
+      fetchWeatherData(currentCity);
+    });
+
+    function initializeCitySelector() {
+      const selector = document.getElementById("citySelector");
+      cities.sort().forEach(city => {
+        const option = document.createElement("option");
+        option.value = city;
+        option.textContent = city;
+        selector.appendChild(option);
+      });
+      
+      selector.value = currentCity;
+    }
+
+    function setupEventListeners() {
+     
+      document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+      
+  
+      document.getElementById('geoBtn').addEventListener('click', getCurrentLocation);
+      
+     
+      document.getElementById('citySelector').addEventListener('change', (e) => {
+        if (e.target.value) {
+          currentCity = e.target.value;
+          fetchWeatherData(currentCity);
+        }
+      });
+      
+ 
+      document.getElementById('addToFav').addEventListener('click', toggleFavorite);
+      
+   
+      document.getElementById('shareBtn').addEventListener('click', shareWeather);
+      
+     
+      document.getElementById('exportBtn').addEventListener('click', exportReport);
+      
+    
+      document.getElementById('compareBtn').addEventListener('click', compareWeather);
+    }
+
+    function toggleTheme() {
+      isDarkTheme = !isDarkTheme;
+      document.body.style.background = isDarkTheme ? '#0f172a' : '#f1f5f9';
+      document.getElementById('themeToggle').innerHTML = isDarkTheme ? '🌙 Tema' : '☀️ Tema';
+      showToast(isDarkTheme ? 'Koyu tema aktif' : 'Açık tema aktif');
+    }
+
+    function getCurrentLocation() {
+      if (navigator.geolocation) {
+        showToast('Konum alınıyor...');
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            const { latitude, longitude } = position.coords;
+            try {
+              const response = await fetch(`https://api.weatherapi.com/v1/current.json?key=${apiKey}&q=${latitude},${longitude}`);
+              const data = await response.json();
+              currentCity = data.location.name;
+              document.getElementById('citySelector').value = currentCity;
+              fetchWeatherData(currentCity);
+              showToast('Konum başarıyla alındı!');
+            } catch (error) {
+              showToast('Konum alınamadı!');
+            }
+          },
+          () => showToast('Konum erişimi reddedildi!')
+        );
+      } else {
+        showToast('Tarayıcı konum desteklemiyor!');
+      }
+    }
+
+    function handleCitySearch(e) {
+      const query = e.target.value.toLowerCase();
+      const results = document.getElementById('searchResults');
+      
+      if (query.length < 2) {
+        results.classList.add('hidden');
+        return;
+      }
+      
+      const filteredCities = cities.filter(city => 
+        city.toLowerCase().includes(query)
+      ).slice(0, 5);
+      
+      results.innerHTML = filteredCities.map(city => 
+        `<div class="p-3 hover:bg-slate-600 cursor-pointer text-white" onclick="selectCity('${city}')">${city}</div>`
+      ).join('');
+      
+      results.classList.toggle('hidden', filteredCities.length === 0);
+    }
+
+    function selectCity(city) {
+      currentCity = city;
+      document.getElementById('citySearch').value = city;
+      document.getElementById('searchResults').classList.add('hidden');
+      fetchWeatherData(city);
+    }
+
+    function toggleFavorite() {
+      const index = favorites.indexOf(currentCity);
+      if (index === -1) {
+        favorites.push(currentCity);
+        showToast('Favorilere eklendi!');
+      } else {
+        favorites.splice(index, 1);
+        showToast('Favorilerden çıkarıldı!');
+      }
+      localStorage.setItem('weatherFavorites', JSON.stringify(favorites));
+      updateFavoriteButton();
+    }
+
+    function updateFavoriteButton() {
+      const btn = document.getElementById('addToFav');
+      btn.innerHTML = favorites.includes(currentCity) ? '⭐' : '☆';
+    }
+
+    async function fetchWeatherData(city) {
+      try {
+        showLoading();
+        
+        const response = await fetch(`https://api.weatherapi.com/v1/forecast.json?key=${apiKey}&q=${city}&days=7&aqi=yes&alerts=yes`);
+        const data = await response.json();
+
+        if (data.error) {
+          throw new Error(data.error.message);
+        }
+
+        updateCurrentWeather(data);
+        updateForecast(data);
+        updateAIFeatures(data.current);
+        updateExtendedInfo(data);
+        updateWeatherAnimation(data.current.condition.text);
+        updateFavoriteButton();
+
+      } catch (error) {
+        console.error('Weather data fetch error:', error);
+        showToast('Hava durumu verisi alınamadı!');
+      }
+    }
+
+    function showLoading() {
+      document.getElementById('currentTemp').innerHTML = '<span class="animate-pulse">Yükleniyor...</span>';
+      document.getElementById('weatherDescription').textContent = '';
+    }
+
+    function updateCurrentWeather(data) {
+      const current = data.current;
+      const location = data.location;
+
+      document.getElementById('currentIcon').src = `https:${current.condition.icon}`;
+      document.getElementById('currentTemp').textContent = `${Math.round(current.temp_c)}°C`;
+      document.getElementById('weatherDescription').textContent = current.condition.text;
+      document.getElementById('cityTitle').textContent = location.name;
+      document.getElementById('humidity').textContent = `${current.humidity}%`;
+      document.getElementById('windSpeed').textContent = `${Math.round(current.wind_kph)} km/h`;
+      document.getElementById('pressure').textContent = `${current.pressure_mb} mb`;
+      document.getElementById('feelsLike').textContent = `${Math.round(current.feelslike_c)}°C`;
+      document.getElementById('lastUpdate').textContent = `Son güncelleme: ${new Date().toLocaleTimeString('tr-TR')}`;
+
+    
+      const probability = calculateHolidayProbability(current.condition.text, current.temp_c, current.wind_kph);
+      document.getElementById('holidayProbability').textContent = `${probability}%`;
+    }
+
+    function updateForecast(data) {
+     
+      const hourlyContainer = document.getElementById('hourlyForecast');
+      const currentHour = new Date().getHours();
+      const todayHours = data.forecast.forecastday[0].hour.slice(currentHour, currentHour + 12);
+      
+      hourlyContainer.innerHTML = todayHours.map(hour => {
+        const time = new Date(hour.time).getHours();
+        return `
+          <div class="flex-none text-center p-4 bg-slate-700 bg-opacity-40 rounded-xl min-w-[100px] border border-slate-600">
+            <div class="text-sm font-medium mb-2">${time}:00</div>
+            <img src="https:${hour.condition.icon}" alt="Weather" class="w-8 h-8 mx-auto mb-2">
+            <div class="text-lg font-bold">${Math.round(hour.temp_c)}°</div>
+            <div class="text-xs text-slate-400">${hour.chance_of_rain}%</div>
+          </div>
+        `;
+      }).join('');
+
+    
+      const forecastGrid = document.getElementById('forecastGrid');
+      forecastGrid.innerHTML = data.forecast.forecastday.map((day, index) => {
+        const date = new Date(day.date);
+        const dayName = index === 0 ? 'Bugün' : date.toLocaleDateString('tr-TR', { weekday: 'short' });
+        
+        return `
+          <div class="flex-none w-32 md:w-36 text-center p-4 rounded-2xl bg-slate-700 bg-opacity-40 border border-slate-600 transition-transform duration-300 hover:scale-105">
+            <div class="text-sm font-semibold text-slate-300">${dayName}</div>
+            <img src="https:${day.day.condition.icon}" alt="Hava Durumu" class="w-12 h-12 mx-auto my-2">
+            <div class="text-lg font-bold">${Math.round(day.day.maxtemp_c)}° / ${Math.round(day.day.mintemp_c)}°</div>
+            <div class="text-xs text-slate-400 mt-1">${day.day.condition.text}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updateAIFeatures(current) {
+ 
+      const outfit = getOutfitRecommendation(current.temp_c, current.condition.text, current.wind_kph);
+      document.getElementById('outfitAdvice').innerHTML = outfit;
+      
+      
+      const activity = getActivitySuggestions(current.temp_c, current.condition.text, current.wind_kph);
+      document.getElementById('activityAdvice').innerHTML = activity;
+      
+      
+      const health = getHealthAlerts(current.temp_c, current.humidity, current.wind_kph, current.condition.text);
+      document.getElementById('healthAdvice').innerHTML = health;
+    }
+
+    function updateExtendedInfo(data) {
+      const astronomy = data.forecast.forecastday[0].astro;
+      
+      document.getElementById('sunrise').textContent = astronomy.sunrise;
+      document.getElementById('sunset').textContent = astronomy.sunset;
+      document.getElementById('moonPhase').textContent = getMoonPhaseEmoji(astronomy.moon_phase);
+      
+     
+      if (data.current.air_quality) {
+        const aqi = data.current.air_quality.us-epa-index || 1;
+        document.getElementById('airQuality').textContent = aqi;
+        document.getElementById('airQualityDesc').textContent = getAirQualityDesc(aqi);
+      }
+      
+    
+      document.getElementById('uvIndex').textContent = data.current.uv || '--';
+      document.getElementById('uvDesc').textContent = getUVDesc(data.current.uv);
+      
+    
+      if (data.alerts && data.alerts.alert && data.alerts.alert.length > 0) {
+        document.getElementById('alerts').textContent = data.alerts.alert[0].headline;
+        document.getElementById('alertsContainer').classList.remove('hidden');
+      } else {
+        document.getElementById('alertsContainer').classList.add('hidden');
+      }
+    }
+
+    function updateWeatherAnimation(condition) {
+      const weatherBg = document.getElementById('weatherBg');
+      weatherBg.innerHTML = '';
+      
+      const lowerCondition = condition.toLowerCase();
+      
+      if (lowerCondition.includes('rain') || lowerCondition.includes('yağmur')) {
+        for (let i = 0; i < 50; i++) {
+          const drop = document.createElement('div');
+          drop.className = 'rain-drop';
+          drop.style.left = Math.random() * 100 + '%';
+          drop.style.animationDelay = Math.random() * 2 + 's';
+          drop.style.animationDuration = (Math.random() * 0.5 + 0.5) + 's';
+          weatherBg.appendChild(drop);
+        }
+      } else if (lowerCondition.includes('snow') || lowerCondition.includes('kar')) {
+        for (let i = 0; i < 30; i++) {
+          const flake = document.createElement('div');
+          flake.className = 'snow-flake';
+          flake.innerHTML = '❄';
+          flake.style.left = Math.random() * 100 + '%';
+          flake.style.animationDelay = Math.random() * 3 + 's';
+          flake.style.fontSize = (Math.random() * 0.5 + 0.5) + 'rem';
+          weatherBg.appendChild(flake);
+        }
+      }
+    }
+
+    
+    function calculateHolidayProbability(conditionText, temp, windKph) {
+      let probability = 0;
+      const lowerCase = conditionText.toLowerCase();
+
+      if (lowerCase.includes('kar') || lowerCase.includes('buz') || lowerCase.includes('fırtına')) {
+        probability += 50;
+      }
+      if (windKph > 60) probability += 30;
+      else if (windKph > 40) probability += 15;
+      if (temp < -5) probability += 30;
+      if (lowerCase.includes('yağmur') && temp < 5) probability += 10;
+
+      return Math.min(100, Math.max(0, probability));
+    }
+
+    function getOutfitRecommendation(temp, condition, wind) {
+      if (temp < 0) return "🧥 Kalın mont, eldiven ve bere gerekli. Katmanlı giyinin.";
+      if (temp < 10) return "🧥 Mont veya kalın hırka, uzun pantolon öneriyoruz.";
+      if (temp < 20) return "👕 Hırka veya hafif ceket, rahat kıyafetler uygun.";
+      if (temp < 30) return "👕 Tişört, hafif pantolon veya şort ideal.";
+      return "🩳 Hafif ve ferah kıyafetler, şapka unutmayın!";
+    }
+
+    function getActivitySuggestions(temp, condition, wind) {
+      if (condition.toLowerCase().includes('rain') || condition.toLowerCase().includes('yağmur')) {
+        return "🏠 İç mekan aktiviteleri: Film izleme, kitap okuma öneriyoruz.";
+      }
+      if (temp > 25 && temp < 35) {
+        return "🏖️ Açık hava aktiviteleri: Yürüyüş, piknik, plaj ideal!";
+      }
+      if (temp < 5) {
+        return "☕ Sıcak içecekler, kapalı mekan spor salonları öneriyoruz.";
+      }
+      return "🚶‍♂️ Hafif egzersiz, açık hava yürüyüşü yapabilirsiniz.";
+    }
+
+    function getHealthAlerts(temp, humidity, wind, condition) {
+      let alerts = [];
+      if (humidity > 80) alerts.push("💧 Yüksek nem - astım hastalarına dikkat!");
+      if (temp < 0) alerts.push("🥶 Buzlanma riski - kaygan yollar!");
+      if (wind > 50) alerts.push("💨 Güçlü rüzgar - açık alanda dikkat!");
+      if (temp > 35) alerts.push("🌡️ Sıcak çarpması riski - bol su için!");
+      
+      return alerts.length > 0 ? alerts.join("<br>") : "✅ Sağlık açısından özel uyarı yok.";
+    }
+
+    function getMoonPhaseEmoji(phase) {
+      const phases = {
+        'New Moon': '🌑', 'Waxing Crescent': '🌒', 'First Quarter': '🌓',
+        'Waxing Gibbous': '🌔', 'Full Moon': '🌕', 'Waning Gibbous': '🌖',
+        'Last Quarter': '🌗', 'Waning Crescent': '🌘'
+      };
+      return phases[phase] || '🌙';
+    }
+
+    function getAirQualityDesc(aqi) {
+      if (aqi <= 50) return "İyi";
+      if (aqi <= 100) return "Orta";
+      if (aqi <= 150) return "Hassas gruplar için kötü";
+      if (aqi <= 200) return "Kötü";
+      return "Çok kötü";
+    }
+
+    function getUVDesc(uv) {
+      if (uv <= 2) return "Düşük";
+      if (uv <= 5) return "Orta";
+      if (uv <= 7) return "Yüksek";
+      if (uv <= 10) return "Çok yüksek";
+      return "Aşırı yüksek";
+    }
+
+    function shareWeather() {
+      const text = `${currentCity} hava durumu: ${document.getElementById('currentTemp').textContent} ${document.getElementById('weatherDescription').textContent}`;
+      if (navigator.share) {
+        navigator.share({ title: 'Hava Durumu', text: text });
+      } else {
+        navigator.clipboard.writeText(text);
+        showToast('Panoya kopyalandı!');
+      }
+    }
+
+    function exportReport() {
+      showToast('PDF raporu hazırlanıyor...');
+  
+      setTimeout(() => showToast('Rapor hazır! (Demo)'), 2000);
+    }
+
+    function compareWeather() {
+      showToast('Şehir karşılaştırma özelliği yakında!');
+    }
+
+    function showToast(message, type = 'info') {
+      const toast = document.getElementById('toast');
+      const toastMessage = document.getElementById('toastMessage');
+      
+      toastMessage.textContent = message;
+      toast.style.background = type === 'error' ? '#ef4444' : '#1e293b';
+      
+      toast.style.transform = 'translateX(0)';
+      setTimeout(() => {
+        toast.style.transform = 'translateX(100%)';
+      }, 3000);
+    }
+  </script>
+</body>
+</html>

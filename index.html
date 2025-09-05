@@ -7,7 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">  
   <style>
     :root {
       --primary-color: #38bdf8;
@@ -242,16 +242,18 @@
       <div id="forecastGrid" class="flex overflow-x-auto gap-4 py-4 px-2 scroll-smooth forecast-container">
         </div>
     </div>
-<div class="bg-slate-700 bg-opacity-40 p-6 rounded-2xl border border-slate-600 mt-8">
-  <h3 class="text-xl font-semibold mb-4 text-center">📊 Hava Durumu Diyagramı</h3>
-  <iframe 
-    src="https://www.meteociel.fr/cartes_obs/gens_display.php?ext=1&lon=32.8543&lat=39.9199&ville=Ankara" 
-    width="100%" 
-    height="600" 
-    style="border:0; border-radius: 1rem; overflow:hidden;"
-    loading="lazy">
-  </iframe>
-</div>
+
+    <div class="bg-slate-700 bg-opacity-40 p-6 rounded-2xl border border-slate-600 mt-8">
+      <h3 class="text-xl font-semibold mb-4 text-center">📊 <span id="diagramCityName">Ankara</span> Hava Durumu Diyagramı</h3>
+      <iframe 
+        id="weatherDiagram"
+        src="https://www.meteociel.fr/cartes_obs/gens_display.php?ext=1&lon=32.8543&lat=39.9199&ville=Ankara" 
+        width="100%" 
+        height="600" 
+        style="border:0; border-radius: 1rem; overflow:hidden;"
+        loading="lazy">
+      </iframe>
+    </div>
 
     <div class="mt-8 flex flex-wrap gap-4 justify-center">
       <button id="shareBtn" class="bg-slate-700 px-6 py-3 rounded-xl hover:bg-slate-600 transition-all">
@@ -273,7 +275,7 @@
   <script>
    
     let currentCity = 'Ankara';
-    let favorites = JSON.parse(localStorage.getItem('weatherFavorites') || '["Ankara"]');
+    let favorites = [];
     let isDarkTheme = true;
     
     const apiKey = 'c97a6ce1476f468d942160643253107';
@@ -290,6 +292,91 @@
       "Bayburt", "Karaman", "Kırıkkale", "Batman", "Şırnak", "Bartın", "Ardahan", "Iğdır",
       "Yalova", "Karabük", "Kilis", "Osmaniye", "Düzce"
     ];
+
+    // Şehir koordinatları (Meteociel diyagramı için)
+    const cityCoordinates = {
+      "Adana": {lat: 37.0000, lon: 35.3213},
+      "Adıyaman": {lat: 37.7644, lon: 38.2786},
+      "Afyon": {lat: 38.7569, lon: 30.5387},
+      "Ağrı": {lat: 39.7191, lon: 43.0503},
+      "Amasya": {lat: 40.6499, lon: 35.8353},
+      "Ankara": {lat: 39.9199, lon: 32.8543},
+      "Antalya": {lat: 36.8969, lon: 30.7133},
+      "Artvin": {lat: 41.1828, lon: 41.8183},
+      "Aydın": {lat: 37.8560, lon: 27.8416},
+      "Balıkesir": {lat: 39.6484, lon: 27.8826},
+      "Bilecik": {lat: 40.1553, lon: 29.9833},
+      "Bingöl": {lat: 38.8854, lon: 40.4967},
+      "Bitlis": {lat: 38.4001, lon: 42.1079},
+      "Bolu": {lat: 40.7394, lon: 31.6061},
+      "Burdur": {lat: 37.7200, lon: 30.2906},
+      "Bursa": {lat: 40.1826, lon: 29.0669},
+      "Çanakkale": {lat: 40.1553, lon: 26.4142},
+      "Çankırı": {lat: 40.6013, lon: 33.6134},
+      "Çorum": {lat: 40.5506, lon: 34.9556},
+      "Denizli": {lat: 37.7765, lon: 29.0864},
+      "Diyarbakır": {lat: 37.9144, lon: 40.2306},
+      "Edirne": {lat: 41.6818, lon: 26.5623},
+      "Elazığ": {lat: 38.6810, lon: 39.2264},
+      "Erzincan": {lat: 39.7500, lon: 39.5000},
+      "Erzurum": {lat: 39.9000, lon: 41.2700},
+      "Eskişehir": {lat: 39.7667, lon: 30.5256},
+      "Gaziantep": {lat: 37.0662, lon: 37.3833},
+      "Giresun": {lat: 40.9128, lon: 38.3895},
+      "Gümüşhane": {lat: 40.4602, lon: 39.5081},
+      "Hakkari": {lat: 37.5744, lon: 43.7408},
+      "Hatay": {lat: 36.4018, lon: 36.3498},
+      "Isparta": {lat: 37.7648, lon: 30.5566},
+      "Mersin": {lat: 36.8000, lon: 34.6333},
+      "İstanbul": {lat: 41.0082, lon: 28.9784},
+      "İzmir": {lat: 38.4192, lon: 27.1287},
+      "Kars": {lat: 40.6013, lon: 43.0975},
+      "Kastamonu": {lat: 41.3887, lon: 33.7827},
+      "Kayseri": {lat: 38.7312, lon: 35.4787},
+      "Kırklareli": {lat: 41.7333, lon: 27.2167},
+      "Kırşehir": {lat: 39.1425, lon: 34.1709},
+      "Kocaeli": {lat: 40.8533, lon: 29.8815},
+      "Konya": {lat: 37.8667, lon: 32.4833},
+      "Kütahya": {lat: 39.4167, lon: 29.9833},
+      "Malatya": {lat: 38.3552, lon: 38.3095},
+      "Manisa": {lat: 38.6191, lon: 27.4289},
+      "Kahramanmaraş": {lat: 37.5858, lon: 36.9371},
+      "Mardin": {lat: 37.3212, lon: 40.7245},
+      "Muğla": {lat: 37.2153, lon: 28.3636},
+      "Muş": {lat: 38.9462, lon: 41.7539},
+      "Nevşehir": {lat: 38.6939, lon: 34.6857},
+      "Niğde": {lat: 37.9667, lon: 34.6833},
+      "Ordu": {lat: 40.9839, lon: 37.8764},
+      "Rize": {lat: 41.0201, lon: 40.5234},
+      "Sakarya": {lat: 40.6940, lon: 30.4358},
+      "Samsun": {lat: 41.2867, lon: 36.3300},
+      "Siirt": {lat: 37.9333, lon: 41.9500},
+      "Sinop": {lat: 42.0231, lon: 35.1531},
+      "Sivas": {lat: 39.7477, lon: 37.0179},
+      "Tekirdağ": {lat: 40.9833, lon: 27.5167},
+      "Tokat": {lat: 40.3167, lon: 36.5500},
+      "Trabzon": {lat: 41.0015, lon: 39.7178},
+      "Tunceli": {lat: 39.3074, lon: 39.4388},
+      "Şanlıurfa": {lat: 37.1591, lon: 38.7969},
+      "Uşak": {lat: 38.6823, lon: 29.4082},
+      "Van": {lat: 38.4891, lon: 43.4089},
+      "Yozgat": {lat: 39.8181, lon: 34.8147},
+      "Zonguldak": {lat: 41.4564, lon: 31.7987},
+      "Aksaray": {lat: 38.3687, lon: 34.0370},
+      "Bayburt": {lat: 40.2552, lon: 40.2249},
+      "Karaman": {lat: 37.1759, lon: 33.2287},
+      "Kırıkkale": {lat: 39.8468, lon: 33.5153},
+      "Batman": {lat: 37.8812, lon: 41.1351},
+      "Şırnak": {lat: 37.4187, lon: 42.4918},
+      "Bartın": {lat: 41.5811, lon: 32.4610},
+      "Ardahan": {lat: 41.1105, lon: 42.7022},
+      "Iğdır": {lat: 39.8880, lon: 44.0048},
+      "Yalova": {lat: 40.6500, lon: 29.2667},
+      "Karabük": {lat: 41.2061, lon: 32.6204},
+      "Kilis": {lat: 36.7184, lon: 37.1212},
+      "Osmaniye": {lat: 37.0742, lon: 36.2461},
+      "Düzce": {lat: 40.8438, lon: 31.1565}
+    };
 
     
     document.addEventListener('DOMContentLoaded', () => {
@@ -322,13 +409,13 @@
         if (e.target.value) {
           currentCity = e.target.value;
           fetchWeatherData(currentCity);
+          updateWeatherDiagram(currentCity);
         }
       });
       
  
       document.getElementById('addToFav').addEventListener('click', toggleFavorite);
       
-   
       document.getElementById('shareBtn').addEventListener('click', shareWeather);
       
      
@@ -336,6 +423,16 @@
       
     
       document.getElementById('compareBtn').addEventListener('click', compareWeather);
+    }
+
+    function updateWeatherDiagram(city) {
+      const coordinates = cityCoordinates[city];
+      if (coordinates) {
+        const diagramUrl = `https://www.meteociel.fr/cartes_obs/gens_display.php?ext=1&lon=${coordinates.lon}&lat=${coordinates.lat}&ville=${encodeURIComponent(city)}`;
+        document.getElementById('weatherDiagram').src = diagramUrl;
+        document.getElementById('diagramCityName').textContent = city;
+        showToast(`${city} için diyagram güncellendi!`);
+      }
     }
 
     function toggleTheme() {
@@ -357,6 +454,7 @@
               currentCity = data.location.name;
               document.getElementById('citySelector').value = currentCity;
               fetchWeatherData(currentCity);
+              updateWeatherDiagram(currentCity);
               showToast('Konum başarıyla alındı!');
             } catch (error) {
               showToast('Konum alınamadı!');
@@ -369,33 +467,6 @@
       }
     }
 
-    function handleCitySearch(e) {
-      const query = e.target.value.toLowerCase();
-      const results = document.getElementById('searchResults');
-      
-      if (query.length < 2) {
-        results.classList.add('hidden');
-        return;
-      }
-      
-      const filteredCities = cities.filter(city => 
-        city.toLowerCase().includes(query)
-      ).slice(0, 5);
-      
-      results.innerHTML = filteredCities.map(city => 
-        `<div class="p-3 hover:bg-slate-600 cursor-pointer text-white" onclick="selectCity('${city}')">${city}</div>`
-      ).join('');
-      
-      results.classList.toggle('hidden', filteredCities.length === 0);
-    }
-
-    function selectCity(city) {
-      currentCity = city;
-      document.getElementById('citySearch').value = city;
-      document.getElementById('searchResults').classList.add('hidden');
-      fetchWeatherData(city);
-    }
-
     function toggleFavorite() {
       const index = favorites.indexOf(currentCity);
       if (index === -1) {
@@ -405,7 +476,6 @@
         favorites.splice(index, 1);
         showToast('Favorilerden çıkarıldı!');
       }
-      localStorage.setItem('weatherFavorites', JSON.stringify(favorites));
       updateFavoriteButton();
     }
 
@@ -457,13 +527,12 @@
       document.getElementById('feelsLike').textContent = `${Math.round(current.feelslike_c)}°C`;
       document.getElementById('lastUpdate').textContent = `Son güncelleme: ${new Date().toLocaleTimeString('tr-TR')}`;
 
-    
       const probability = calculateHolidayProbability(current.condition.text, current.temp_c, current.wind_kph);
       document.getElementById('holidayProbability').textContent = `${probability}%`;
     }
 
     function updateForecast(data) {
-     
+      
       const hourlyContainer = document.getElementById('hourlyForecast');
       const currentHour = new Date().getHours();
       const todayHours = data.forecast.forecastday[0].hour.slice(currentHour, currentHour + 12);
@@ -480,7 +549,7 @@
         `;
       }).join('');
 
-    
+
       const forecastGrid = document.getElementById('forecastGrid');
       forecastGrid.innerHTML = data.forecast.forecastday.map((day, index) => {
         const date = new Date(day.date);
@@ -502,7 +571,7 @@
       const outfit = getOutfitRecommendation(current.temp_c, current.condition.text, current.wind_kph);
       document.getElementById('outfitAdvice').innerHTML = outfit;
       
-      
+     
       const activity = getActivitySuggestions(current.temp_c, current.condition.text, current.wind_kph);
       document.getElementById('activityAdvice').innerHTML = activity;
       
@@ -518,14 +587,14 @@
       document.getElementById('sunset').textContent = astronomy.sunset;
       document.getElementById('moonPhase').textContent = getMoonPhaseEmoji(astronomy.moon_phase);
       
-     
+      
       if (data.current.air_quality) {
-        const aqi = data.current.air_quality.us-epa-index || 1;
+        const aqi = data.current.air_quality['us-epa-index'] || 1;
         document.getElementById('airQuality').textContent = aqi;
         document.getElementById('airQualityDesc').textContent = getAirQualityDesc(aqi);
       }
       
-    
+     
       document.getElementById('uvIndex').textContent = data.current.uv || '--';
       document.getElementById('uvDesc').textContent = getUVDesc(data.current.uv);
       
@@ -566,7 +635,7 @@
       }
     }
 
-    
+
     function calculateHolidayProbability(conditionText, temp, windKph) {
       let probability = 0;
       const lowerCase = conditionText.toLowerCase();
@@ -650,7 +719,6 @@
 
     function exportReport() {
       showToast('PDF raporu hazırlanıyor...');
-  
       setTimeout(() => showToast('Rapor hazır! (Demo)'), 2000);
     }
 
@@ -672,6 +740,4 @@
     }
   </script>
 </body>
-
 </html>
-

@@ -1,0 +1,19 @@
+🌤️ Donduk.io – Update Log v1.1
+
+🚀 Yeni Özellikler
+
+81 ilin mini diyagramları eklendi!
+Şehri seç → Güncel diyagram hemen aşağıda görünür.
+🌟 Diyagramlar sürekli güncelleniyor.
+
+⚡ İyileştirmeler
+
+Şehir seçimi ve diyagram görünümü daha hızlı ve akıcı.
+
+🛠️ Düzeltmeler
+
+Eski veri görünümlerindeki küçük hatalar giderildi.
+
+Diyagram yüklenme süresi optimize edildi.
+
+💡 Daha fazla güncelleme ve yeni özellikler yakında eklenecek!
